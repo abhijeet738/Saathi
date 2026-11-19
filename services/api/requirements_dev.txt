@@ -1,0 +1,10 @@
+# Tools for running tests and lint locally and in CI. NOT installed in the Docker image.
+# Install with:  pip install -r requirements-dev.txt   (this also installs requirements.txt)
+
+-r requirements.txt
+
+pytest==8.*
+ruff==0.7.*
+
+# Used by scripts/run_golden.py (it runs on your machine, not in a container)
+pyyaml==6.*

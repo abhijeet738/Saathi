@@ -1,0 +1,85 @@
+name: saathi
+
+# Keep container logs from filling the disk on a small VPS.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  n8n:
+    # Pin an exact 2.x version (e.g. docker.n8n.io/n8nio/n8n:2.x.y) once everything works.
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      # Only reachable from your own machine; the Cloudflare tunnel is what exposes webhooks.
+      - "127.0.0.1:5678:5678"
+    environment:
+      - TZ=${TZ}
+      # Schedule Triggers use this timezone.
+      - GENERIC_TIMEZONE=${TZ}
+      # Must be the public https URL ending with / (Telegram sends webhooks here).
+      - WEBHOOK_URL=${PUBLIC_URL}
+      # Running behind Cloudflare (one proxy hop).
+      - N8N_PROXY_HOPS=1
+      # Encrypts saved credentials. Never lose or change it.
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - N8N_DIAGNOSTICS_ENABLED=false
+      # Execution history holds email and PDF text, so keep it short (hours): 72 = 3 days.
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=72
+    volumes:
+      - n8n_data:/home/node/.n8n
+      # Export/import target used by scripts/export_workflows.sh and import_workflows.sh.
+      - ./n8n/workflows:/workflows
+    depends_on:
+      - api
+
+  api:
+    build: ./services/api
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      # Dev only, so http://localhost:8000/docs works. REMOVE this block in production:
+      # n8n reaches the API over the Docker network at http://api:8000.
+      - "127.0.0.1:8000:8000"
+    environment:
+      - TZ=${TZ}
+      - DATABASE_URL=${DATABASE_URL}
+      - DB_POOL_MAX=${DB_POOL_MAX:-3}
+      - SAATHI_API_KEY=${SAATHI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_CHAT_MODEL=${GEMINI_CHAT_MODEL}
+      - GEMINI_EMBED_MODEL=${GEMINI_EMBED_MODEL}
+      - EMBED_DIM=${EMBED_DIM}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - WHATSAPP_TOKEN=${WHATSAPP_TOKEN}
+      - WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID}
+      - WHATSAPP_API_VERSION=${WHATSAPP_API_VERSION}
+      - MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-20}
+
+  dashboard:
+    build: ./services/dashboard
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "127.0.0.1:8501:8501"
+    environment:
+      # Uses the read-only role if DASHBOARD_DATABASE_URL is set, otherwise falls back to DATABASE_URL.
+      - DATABASE_URL=${DASHBOARD_DATABASE_URL:-${DATABASE_URL}}
+      - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD}
+
+  # Production only: start with `make prod-up` (docker compose --profile prod up -d).
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    logging: *default-logging
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    profiles: ["prod"]
+
+volumes:
+  n8n_data:

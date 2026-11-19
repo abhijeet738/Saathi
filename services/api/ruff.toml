@@ -1,0 +1,17 @@
+line-length = 120
+target-version = "py312"
+
+[lint]
+# E/F: pycodestyle + pyflakes, I: import order, B: likely bugs, UP: modern Python syntax
+select = ["E", "F", "I", "B", "UP"]
+
+[lint.flake8-bugbear]
+# FastAPI parameters like `Header(default="")` are function calls in default arguments.
+# Rule B008 would flag them, but this is the normal FastAPI pattern, so mark them as safe.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Header",
+    "fastapi.Query",
+    "fastapi.Body",
+    "fastapi.Path",
+]

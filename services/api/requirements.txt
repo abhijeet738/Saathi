@@ -1,0 +1,26 @@
+# Runtime dependencies for the Saathi API (installed into the Docker image).
+# Test and lint tools live in requirements-dev.txt so they stay out of the image.
+
+# Web framework
+fastapi==0.115.*
+uvicorn[standard]==0.32.*
+pydantic-settings==2.*
+
+# Database (plain SQL, no ORM) and vector search
+psycopg[binary,pool]==3.2.*
+pgvector==0.3.*
+numpy==2.*
+
+# AI (Gemini). Upper bound stops a future major release breaking the build.
+google-genai>=1.0,<2
+
+# HTTP client. Range, not a pin: google-genai and FastAPI's test client both depend on httpx.
+httpx>=0.27,<1.0
+
+# Documents and web pages for the second brain
+pypdf==5.*
+trafilatura==1.12.*
+
+# Money analytics and charts
+pandas==2.2.*
+matplotlib==3.9.*
