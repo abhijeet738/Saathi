@@ -1,0 +1,1 @@
+Classify the message by topic and urgency. Return the category, a short reason, and whether a reply is needed.

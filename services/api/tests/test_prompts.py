@@ -14,8 +14,12 @@ from app.core.llm import PROMPT_DIR, load_prompt
 
 # prompt name -> the placeholders it uses
 EXPECTED = {
+    "brief_compose": set(),
+    "doc_summary": set(),
     "transcribe": set(),
     "image_analyze": {"caption"},
+    "inbox_classify": set(),
+    "money_parse": set(),
 }
 
 # Prompts that receive text written by someone else. They must tell the model to treat it as data.

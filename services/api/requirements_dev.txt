@@ -1,5 +1,5 @@
 # Tools for running tests and lint locally and in CI. NOT installed in the Docker image.
-# Install with:  pip install -r requirements-dev.txt   (this also installs requirements.txt)
+# Install with:  pip install -r requirements_dev.txt   (this also installs requirements.txt)
 
 -r requirements.txt
 
