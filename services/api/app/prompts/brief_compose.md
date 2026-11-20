@@ -1,0 +1,1 @@
+Compose a concise daily brief. Include the user's most important messages, deadlines, and follow-up items.

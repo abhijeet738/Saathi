@@ -1,3 +1,4 @@
+
 """Saathi API entry point.
 
 Each phase adds its routers to the PROTECTED ROUTERS block below, one line per router:
@@ -11,7 +12,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI
 
 from .db import close_pool
-from .routers import health
+from .routers import channels, health, media
 from .security import require_api_key
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -33,7 +34,8 @@ app.include_router(health.router)
 protected = [Depends(require_api_key)]
 
 # --- PROTECTED ROUTERS (added phase by phase) ---
-# Phase 1: channels, media
+app.include_router(channels.router, dependencies=protected)  # Phase 1
+app.include_router(media.router, dependencies=protected)  # Phase 1
 # Phase 2: inbox, brief
 # Phase 3: brain, memory
 # Phase 4: money

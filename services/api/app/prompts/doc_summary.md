@@ -1,0 +1,1 @@
+Summarize the document clearly. Preserve the key facts, decisions, dates, and action items.

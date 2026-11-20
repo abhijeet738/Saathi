@@ -1,0 +1,1 @@
+Extract transaction details from the text. Preserve amounts and currencies, and return the merchant, date, category, and type when visible.

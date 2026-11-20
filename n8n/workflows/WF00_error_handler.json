@@ -1,0 +1,158 @@
+
+{
+  "name": "WF00 Error Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "WF00 Error Handler\n\nLogs any workflow failure to event_log and alerts the admin on Telegram, at most once per 30 minutes for the same error. Built in T1.1.\n\nBEFORE ACTIVATING: 1) pick the credentials 'Saathi DB' and 'Saathi API Key' in the Postgres and HTTP nodes, 2) replace YOUR_TELEGRAM_ID in 'Alert admin' with your numeric Telegram id.",
+        "height": 260,
+        "width": 640
+      },
+      "id": "bcb5690e-22fc-4ebd-b895-14d89f59f6ff",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -320
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "9667fa7d-853b-449c-8899-8b26470f75e7",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "with ins as (\n  insert into event_log (level, source, message, data)\n  values ('error', $1, $2, $3::jsonb)\n  returning id\n)\nselect not exists (\n  select 1 from event_log\n  where level = 'error'\n    and source = $1\n    and message = $2\n    and created_at > now() - interval '30 minutes'\n) as should_alert;",
+        "options": {
+          "queryReplacement": "={{ [\n  $json.workflow.name,\n  String($json.execution.error.message).slice(0, 500),\n  JSON.stringify({ execution_id: $json.execution.id, url: $json.execution.url, node: $json.execution.lastNodeExecuted || 'unknown' })\n] }}"
+        }
+      },
+      "id": "a5dd325b-7018-4312-b7cd-5e521ffdfbdc",
+      "name": "Log error",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        260,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_ME",
+          "name": "Saathi DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a9021436-445f-435e-8b6a-4b743c7a4942",
+              "leftValue": "={{ $json.should_alert }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fb442ccd-38d7-4ff3-8b71-ed06cb26b862",
+      "name": "Should alert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        520,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/channels/send",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  channel: 'telegram',\n  chat_id: 'YOUR_TELEGRAM_ID',\n  text: '⚠️ ' + $('Error Trigger').item.json.workflow.name + ' failed at ' + ($('Error Trigger').item.json.execution.lastNodeExecuted || 'unknown') + ': ' + String($('Error Trigger').item.json.execution.error.message).slice(0, 300)\n}) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "b8032fdb-a626-42bc-92d2-396c0f06284c",
+      "name": "Alert admin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        -20
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ME",
+          "name": "Saathi API Key"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Log error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log error": {
+      "main": [
+        [
+          {
+            "node": "Should alert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should alert?": {
+      "main": [
+        [
+          {
+            "node": "Alert admin",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Kolkata"
+  },
+  "pinData": {}
+}
